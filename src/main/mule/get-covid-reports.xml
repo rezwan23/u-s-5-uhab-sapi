@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="get-covid-reportsFlow" doc:id="6d6a229b-0f13-495d-9e06-443b5239de7f" >
+		<http:listener doc:name="Listener" doc:id="d6f54c44-ead3-4840-adce-45735f2a7194" config-ref="HTTP_Listener_config" path="v1/reports" allowedMethods="GET"/>
+		<logger level="INFO" doc:name="Logger" doc:id="78adef66-da34-4db6-afd0-a6c908bb73f7" message="#[attributes.queryParams.state]"/>
+	</flow>
+</mule>
