@@ -28,6 +28,9 @@ type register_covid_case_meta_data = {|
     <types:type name="who-case-meta-data" format="xml">
       <types:example format="xml" element="COVID_CASE" location="examples/who-covid-case-request-payload.xml"/>
     </types:type>
+    <types:type name="update-covid-case-xml" format="xml">
+      <types:example format="xml" element="covidCase" location="examples/update-covid-case-payload.xml"/>
+    </types:type>
   </types:catalog>
   <types:enrichment select="#a069f106-9266-4a24-8337-eac4e3fae305">
     <types:processor-declaration>
@@ -39,6 +42,20 @@ type register_covid_case_meta_data = {|
       <types:output-event>
         <types:message>
           <types:payload type="who-case-meta-data"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#0138ca30-fc4a-4829-8aaa-fa867253713c">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="update-covid-case-xml"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="register-covid-case-meta-data"/>
         </types:message>
       </types:output-event>
     </types:processor-declaration>

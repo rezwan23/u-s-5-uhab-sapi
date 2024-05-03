@@ -1,11 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<flow name="update-covid-caseFlow" doc:id="d68344bb-7122-417e-9335-c57338164b67" >
 		<http:listener doc:name="Listener" doc:id="831cdf80-6138-44dc-8c49-aa5b6a1f6c12" config-ref="HTTP_Listener_config" path="v1/cases" allowedMethods="PUT"/>
 		<logger level="INFO" doc:name="Logger" doc:id="96a6c9a2-3c8b-4f89-8a1c-fd01ea26518a" message="#[payload.covidCase.caseID]"/>
+		<ee:transform doc:name="Transform Message" doc:id="0138ca30-fc4a-4829-8aaa-fa867253713c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	source: payload.covidCase.source,
+	caseType: payload.covidCase.caseType,
+	firstName: payload.covidCase.firstName,
+	lastName: payload.covidCase.lastName,
+	phone: payload.covidCase.phone,
+	email: payload.covidCase.email,
+	dateOfBirth: payload.covidCase.dateOfBirth as String,
+	nationalID: payload.covidCase.nationalID,
+	nationalIDType: payload.covidCase.nationalIDType,
+	address: {
+		streetAddress: payload.covidCase.address.streetAddress,
+		city: payload.covidCase.address.city,
+		state: payload.covidCase.address.state,
+		postal: payload.covidCase.address.postal as String,
+		country: payload.covidCase.address.country
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
 	</flow>
 </mule>
