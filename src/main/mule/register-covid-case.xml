@@ -1,34 +1,83 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="c8142542-f38b-48c1-8ccd-aa478292ced3" basePath="covid" >
 		<http:listener-connection host="0.0.0.0" port="8082" />
 	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="e4ae01bb-f662-471f-89c6-cbd8849c70e8" >
+		<db:my-sql-connection host="172.22.0.3" port="3306" user="ghani" password="ghani" database="mule" />
+	</db:config>
 	<flow name="register-covid-caseFlow" doc:id="c92fa137-5af0-4d88-a18f-42b513e36597" >
 		<http:listener doc:name="Listener" doc:id="7b30587c-d6f3-4998-9f22-a8a098b938e1" config-ref="HTTP_Listener_config" path="v1/cases" allowedMethods="POST">
+			<http:response statusCode="#[vars.statusCode]" reasonPhrase="#[vars.statusReason]" />
 		</http:listener>
-		<logger level="INFO" doc:name="Logger" doc:id="53e67a66-4e8c-4bf6-98d5-890405bfd8c5" message="#[payload]"/>
-		<ee:transform doc:name="Transform Message" doc:id="a069f106-9266-4a24-8337-eac4e3fae305" >
+		<logger level="INFO" doc:name="StartLog" doc:id="53e67a66-4e8c-4bf6-98d5-890405bfd8c5" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="50bf986b-cde8-4b67-bd49-1dab1d38627b" >
 			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output application/xml
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="covidPayload" ><![CDATA[%dw 2.0
+output application/java
+var actionDate = now() as String {format : "yyyy-MM-dd"}
+var owner = "Ghani"
 ---
 {
-	COVID_CASE: {
-		FIRST_NAME: payload.firstName,
-		LAST_NAME: payload.lastName,
-		PHONE: payload.phone,
-		EMAIL: payload.email,
-		DATE_OF_BIRTH: payload.dateOfBirth as Date,
-		COUNTRY: payload.address.country
-	}
+	SOURCE: payload.source,
+	NATIONAL_ID: payload.nationalID,
+	STREET_ADDRESS: payload.address.streetAddress,
+	COUNTRY: payload.address.country,
+	CITY: payload.address.city,
+	DATE_OF_BIRTH: payload.dateOfBirth,
+	CASE_TYPE: payload.caseType,
+	LAST_NAME: payload.lastName,
+	NATIONAL_ID_TYPE: payload.nationalIDType,
+	UPDATE_DATE: actionDate,
+	CREATE_BY: owner,
+	EMAIL: payload.email,
+	FIRST_NAME: payload.firstName,
+	POSTAL: payload.address.postal,
+	CREATE_DATE: actionDate,
+	UPDATE_BY: owner,
+	STATE: payload.address.state,
+	PHONE: payload.phone
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<db:insert doc:name="Insert" doc:id="3528c55e-f7f5-4009-910a-90fb29bd39d9" config-ref="Database_Config" queryTimeout="60000" queryTimeoutUnit="MILLISECONDS">
+			<db:sql ><![CDATA[INSERT INTO CVD_CASE_MASTER  (SOURCE, CASE_TYPE,  FIRST_NAME,  LAST_NAME,  PHONE, 
+                 EMAIL,  DATE_OF_BIRTH,  NATIONAL_ID,  NATIONAL_ID_TYPE,  STREET_ADDRESS, 
+                 CITY,  STATE,  POSTAL, COUNTRY,  CREATE_DATE, UPDATE_DATE,  CREATE_BY,  UPDATE_BY) 
+                 
+                 
+ VALUES     (:SOURCE,  :CASE_TYPE,   :FIRST_NAME, :LAST_NAME,  :PHONE, :EMAIL,  :DATE_OF_BIRTH, 
+                :NATIONAL_ID,  :NATIONAL_ID_TYPE,  :STREET_ADDRESS,   :CITY, 
+                :STATE,  :POSTAL,  :COUNTRY, :CREATE_DATE,  :UPDATE_DATE,  :CREATE_BY, :UPDATE_BY);]]></db:sql>
+			<db:input-parameters ><![CDATA[#[vars.covidPayload]]]></db:input-parameters>
+			<db:auto-generated-keys-column-names />
+		</db:insert>
+		<db:select doc:name="Select" doc:id="2f7745ca-980f-4b8b-a62e-fe1b66860522" config-ref="Database_Config">
+			<db:sql><![CDATA[select max(CASE_ID) from CVD_CASE_MASTER where NATIONAL_ID = :national_id]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	national_id : vars.covidPayload.NATIONAL_ID
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="34dbff68-a2f8-439d-b981-11860f3a4b74" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	caseID : payload[0]."max(CASE_ID)"
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<logger level="INFO" doc:name="Logger" doc:id="d525e00d-3768-4d84-9119-0a4d7fbbe54d" message="#[payload]"/>
+	</flow>
+	<flow name="register-covid-caseFlow1" doc:id="55066108-db85-4c6a-9835-3714c92a16ed" >
+		<logger level="INFO" doc:name="Logger" doc:id="e609e64c-2f40-4a87-9f01-450ada0a8d64" />
 	</flow>
 </mule>
