@@ -1,34 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
 	<flow name="update-covid-caseFlow" doc:id="d68344bb-7122-417e-9335-c57338164b67" >
 		<http:listener doc:name="Listener" doc:id="831cdf80-6138-44dc-8c49-aa5b6a1f6c12" config-ref="HTTP_Listener_config" path="v1/cases" allowedMethods="PUT"/>
 		<logger level="INFO" doc:name="Logger" doc:id="96a6c9a2-3c8b-4f89-8a1c-fd01ea26518a" message="#[payload.covidCase.caseID]"/>
-		<ee:transform doc:name="Transform Message" doc:id="0138ca30-fc4a-4829-8aaa-fa867253713c" >
+		<ee:transform doc:name="Set Variable" doc:id="0138ca30-fc4a-4829-8aaa-fa867253713c" >
 			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="covidCase" ><![CDATA[%dw 2.0
 output application/json
 ---
 {
-	source: payload.covidCase.source,
-	caseType: payload.covidCase.caseType,
-	firstName: payload.covidCase.firstName,
-	lastName: payload.covidCase.lastName,
-	phone: payload.covidCase.phone,
-	email: payload.covidCase.email,
-	dateOfBirth: payload.covidCase.dateOfBirth as String,
-	nationalID: payload.covidCase.nationalID,
-	nationalIDType: payload.covidCase.nationalIDType,
-	address: {
-		streetAddress: payload.covidCase.address.streetAddress,
-		city: payload.covidCase.address.city,
-		state: payload.covidCase.address.state,
-		postal: payload.covidCase.address.postal as String,
-		country: payload.covidCase.address.country
+	street_address : payload.covidCase.address.streetAddress,
+	country : payload.covidCase.address.country,
+	city : payload.covidCase.address.city,
+	date_of_birth : payload.covidCase.dateOfBirth,
+	case_type : payload.covidCase.caseType,
+	last_name : payload.covidCase.lastName,
+	source:payload.covidCase.source,
+	national_id_type : payload.covidCase.nationalIDType,
+	phone : payload.covidCase.phone,
+	national_id : payload.covidCase.nationalID,
+	case_id : payload.covidCase.caseID,
+	state : payload.covidCase.address.state,
+	postal : payload.covidCase.address.postal,
+	first_name : payload.covidCase.firstName,
+	email :payload.covidCase.email,
+			}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<db:update doc:name="Update" doc:id="0f4a24ed-1ca1-460c-8726-9d29cb1801a2" config-ref="Database_Config">
+			<db:sql ><![CDATA[UPDATE `CVD_CASE_MASTER` SET `SOURCE`=:source,`CASE_TYPE`=:case_type,`FIRST_NAME`=:first_name,`LAST_NAME`=:last_name,`PHONE`=:phone,`EMAIL`=:email,`DATE_OF_BIRTH`=:date_of_birth,`NATIONAL_ID`=:national_id,`NATIONAL_ID_TYPE`=:national_id_type,`STREET_ADDRESS`=:street_address,`CITY`=:city,`STATE`=:state,`POSTAL`=:postal,`COUNTRY`=:country,`UPDATE_DATE`=update_date WHERE CASE_ID = :case_id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[vars.covidCase]]]></db:input-parameters>
+		</db:update>
+		<ee:transform doc:name="Set response" doc:id="c330c0cc-325f-4daf-9070-80fa2029c89f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	"case": 
+	{
+		caseID: vars.covidCase.case_id
 	}
 }]]></ee:set-payload>
 			</ee:message>

@@ -31,6 +31,32 @@ type register_covid_case_meta_data = {|
     <types:type name="update-covid-case-xml" format="xml">
       <types:example format="xml" element="covidCase" location="examples/update-covid-case-payload.xml"/>
     </types:type>
+    <types:type name="update-covid-case-sample-json" format="json">
+      <types:shape format="weave" example="examples/update-covid-case.json"><![CDATA[%dw 2.0
+
+type update_covid_case_sample_json = {|
+  street_address: String, 
+  country: String, 
+  city: String, 
+  date_of_birth: String, 
+  case_type: String, 
+  last_name: String, 
+  source: String, 
+  national_id_type: String, 
+  phone: String, 
+  national_id: String, 
+  case_id: String, 
+  state: String, 
+  postal: String, 
+  first_name: String, 
+  email: String
+|} {"example": "{\\\"street_address\\\":\\\"1600 Pennsylvania Avenue NW\\\",\\\"country\\\":\\\"USA\\\",\\\"city\\\":\\\"Washington\\\",\\\"date_of_birth\\\":\\\"1989-04-26\\\",\\\"case_type\\\":\\\"Ghani\\\",\\\"last_name\\\":\\\"Nixon\\\",\\\"source\\\":\\\"Ghani\\\",\\\"national_id_type\\\":\\\"SSN\\\",\\\"phone\\\":\\\"541-754-3012\\\",\\\"national_id\\\":\\\"209-49-6193\\\",\\\"case_id\\\":\\\"7\\\",\\\"state\\\":\\\"DC\\\",\\\"postal\\\":\\\"20500\\\",\\\"first_name\\\":\\\"John\\\",\\\"email\\\":\\\"john@gmail.com\\\"}"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="update-covid-case-response" format="xml">
+      <types:example format="xml" element="case" location="examples/update-covid-case-response.xml"/>
+    </types:type>
   </types:catalog>
   <types:enrichment select="#0138ca30-fc4a-4829-8aaa-fa867253713c">
     <types:processor-declaration>
@@ -40,9 +66,9 @@ type register_covid_case_meta_data = {|
         </types:message>
       </types:input-event>
       <types:output-event>
-        <types:message>
-          <types:payload type="register-covid-case-meta-data"/>
-        </types:message>
+        <types:variables>
+          <types:variable name="covidCase" type="update-covid-case-sample-json"/>
+        </types:variables>
       </types:output-event>
     </types:processor-declaration>
   </types:enrichment>
@@ -53,6 +79,15 @@ type register_covid_case_meta_data = {|
           <types:payload type="register-covid-case-meta-data"/>
         </types:message>
       </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#c330c0cc-325f-4daf-9070-80fa2029c89f">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="update-covid-case-response"/>
+        </types:message>
+      </types:output-event>
     </types:processor-declaration>
   </types:enrichment>
 </types:mule>

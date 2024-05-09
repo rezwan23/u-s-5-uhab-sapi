@@ -1,0 +1,17 @@
+{
+    "street_address": "1600 Pennsylvania Avenue NW",
+    "country": "USA",
+    "city": "Washington",
+    "date_of_birth": "1989-04-26",
+    "case_type": "Ghani",
+    "last_name": "Nixon",
+    "source": "Ghani",
+    "national_id_type": "SSN",
+    "phone": "541-754-3012",
+    "national_id": "209-49-6193",
+    "case_id": "7",
+    "state": "DC",
+    "postal": "20500",
+    "first_name": "John",
+    "email": "john@gmail.com"
+  }
