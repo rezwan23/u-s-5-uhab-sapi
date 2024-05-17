@@ -1,11 +1,98 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<flow name="get-covid-cases-by-national-idFlow" doc:id="67e38c69-dc38-49e2-a321-dd56e73f0a3c" >
-		<http:listener doc:name="Listener" doc:id="44cfbee9-162d-4968-be0e-d9eb2291df2e" config-ref="HTTP_Listener_config" path="v1/cases/{nationalID}" allowedMethods="GET"/>
+		<http:listener doc:name="Listener" doc:id="44cfbee9-162d-4968-be0e-d9eb2291df2e" config-ref="HTTP_Listener_config" path="v1/cases/{nationalID}" allowedMethods="GET">
+			<http:response statusCode="#[vars.statusCode]" reasonPhrase="#[vars.statusReason]"/>
+		</http:listener>
 		<logger level="INFO" doc:name="Logger" doc:id="c90e4ce5-83fd-4a76-a01e-0a0a21f242bd" message="#[attributes.uriParams.nationalID]"/>
+		<ee:transform doc:name="Transform Message" doc:id="0b126fe0-baa1-40de-8a4b-098a315c69cb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="NationalIdPayload" ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	national_id : attributes.uriParams.'nationalID' as String
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<db:select doc:name="Select" doc:id="074279bc-81ac-4709-9531-ad73c3f2f332" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from CVD_CASE_MASTER where NATIONAL_ID = :national_id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[vars.NationalIdPayload]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="32295757-ee68-458e-a443-78201431840e" >
+			<when expression="#[sizeOf(payload) &gt; 0]">
+				<ee:transform doc:name="Transform Message" doc:id="32b388d5-9349-4af1-8eaa-02cc7fdfd7e3" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map (covidCase, index) -> {
+	caesID : covidCase.CASE_ID,
+	source : covidCase.Source,
+	caseType : covidCase.CASE_TYPE,
+	firstName : covidCase.FIRST_NAME,
+	laseName : covidCase.LAST_NAME,
+	phone : covidCase.PHONE,
+	email : covidCase.EMAIL,
+	dateOfBirth : covidCase.DATE_OF_BIRTH,
+	nationlId : covidCase.NATIONAL_ID,
+	nationalIDType : covidCase.NATIONAL_ID_TYPE,
+	address : {
+		streetAddress : covidCase.STREET_ADDRESS,
+		city : covidCase.CITY
+	},
+	createDate : covidCase.CREATE_DATE as String {format: "yyyy-MM-dd"},
+	updateDate : covidCase.UPDATE_DATE as String {format : "yyyy-MM-dd"}	}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="statusCode" ><![CDATA[%dw 2.0
+output application/java
+---
+200]]></ee:set-variable>
+						<ee:set-variable variableName="statusReason" ><![CDATA[%dw 2.0
+output application/java
+---
+"Ok"]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="6d4d6407-046c-4e63-ab62-7a488d751054" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	code : 404,
+	message : "not found"
+}
+]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="statusCode" ><![CDATA[%dw 2.0
+output application/java
+---
+404]]></ee:set-variable>
+						<ee:set-variable variableName="statusReason" ><![CDATA[%dw 2.0
+output application/java
+---
+"Not Found"]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
 	</flow>
 </mule>

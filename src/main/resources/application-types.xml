@@ -90,4 +90,5 @@ type update_covid_case_sample_json = {|
       </types:output-event>
     </types:processor-declaration>
   </types:enrichment>
+  <types:enrichment select="#0b126fe0-baa1-40de-8a4b-098a315c69cb"/>
 </types:mule>

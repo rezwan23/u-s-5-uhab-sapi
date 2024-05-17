@@ -31,8 +31,16 @@ output application/json
 	state : payload.covidCase.address.state,
 	postal : payload.covidCase.address.postal,
 	first_name : payload.covidCase.firstName,
-	email :payload.covidCase.email,
-			}]]></ee:set-variable>
+	email :payload.covidCase.email
+}]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.headers.'x-correlation-id' default payload.covidCase.caseID]]></ee:set-variable>
+				<ee:set-variable variableName="transactionId" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.headers.'x-transaction-id' default uuid()]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
 		<db:update doc:name="Update" doc:id="0f4a24ed-1ca1-460c-8726-9d29cb1801a2" config-ref="Database_Config">
@@ -42,14 +50,17 @@ output application/json
 		<ee:transform doc:name="Set response" doc:id="c330c0cc-325f-4daf-9070-80fa2029c89f" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
-output application/xml
+output application/json
 ---
-{
-	"case": 
-	{
-		caseID: vars.covidCase.case_id
-	}
-}]]></ee:set-payload>
+if(payload.affectedRows > 0){
+	caseID: vars.covidCase.case_id,
+	transactionId : vars.transactionId,
+	correlationId : vars.correlationId,
+	affectedRows : payload.affectedRows
+}else{
+	
+}
+]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 	</flow>
